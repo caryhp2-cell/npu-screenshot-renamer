@@ -11,6 +11,7 @@ def test_npu_status_is_neutral():
     assert status.is_fallback is False
     assert status.label == "NPU active"
     assert status.severity == "neutral"
+    assert status.tooltip == "NPU device selected"
 
 
 def test_gpu_fallback_status_is_muted_warning():
@@ -23,6 +24,7 @@ def test_gpu_fallback_status_is_muted_warning():
     assert status.is_fallback is True
     assert status.label == "GPU fallback"
     assert status.severity == "muted-warning"
+    assert status.tooltip == "NPU unavailable; using GPU"
 
 
 def test_cpu_fallback_status_explains_reason():
@@ -34,6 +36,7 @@ def test_cpu_fallback_status_explains_reason():
 
     assert status.is_fallback is True
     assert status.label == "CPU fallback"
+    assert status.severity == "muted-warning"
     assert status.tooltip == "NPU and GPU unavailable; using CPU"
 
 
@@ -47,3 +50,4 @@ def test_rule_only_fallback_status():
     assert status.is_fallback is True
     assert status.label == "Rule-only fallback"
     assert status.severity == "muted-warning"
+    assert status.tooltip == "No OpenVINO device available for selected model"
