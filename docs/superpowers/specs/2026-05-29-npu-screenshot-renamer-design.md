@@ -299,6 +299,8 @@ Required screens:
 - Undo: restore selected rename operations.
 - Diagnostics: OpenVINO version, available devices, active inference device.
 
+Runtime status should be visible but low-emphasis. When NPU is active, the UI may show a neutral `NPU active` indicator. When inference falls back to GPU, CPU, or rule-only naming, the UI should show a subtle status badge or diagnostics row such as `GPU fallback` or `CPU fallback`, including a short reason in tooltip or diagnostics text. This indicator must not block automatic renaming.
+
 The app may start as a tray app with a simple settings window.
 
 ## 10. Safety And Error Handling
