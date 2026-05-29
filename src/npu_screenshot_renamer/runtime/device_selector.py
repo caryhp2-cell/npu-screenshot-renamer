@@ -42,8 +42,11 @@ def discover_openvino_devices() -> list[str]:
     except ImportError:
         return []
 
-    core = Core()
-    return list(core.available_devices)
+    try:
+        core = Core()
+        return list(core.available_devices)
+    except Exception:
+        return []
 
 
 def select_current_runtime_status() -> RuntimeStatus:

@@ -1,4 +1,8 @@
+import sys
+from types import ModuleType
+
 from npu_screenshot_renamer.runtime.device_selector import select_runtime_status
+from npu_screenshot_renamer.runtime.device_selector import select_current_runtime_status
 from npu_screenshot_renamer.runtime.status import RuntimeDevice
 
 
@@ -38,5 +42,21 @@ def test_falls_back_to_rule_only_when_no_supported_device_available():
     status = select_runtime_status([])
 
     assert status.requested_device == RuntimeDevice.NPU
+    assert status.active_device == RuntimeDevice.RULE_ONLY
+    assert status.reason == "No OpenVINO device available for selected model"
+
+
+def test_current_status_falls_back_to_rule_only_when_openvino_core_fails(monkeypatch):
+    openvino = ModuleType("openvino")
+
+    class FailingCore:
+        def __init__(self):
+            raise RuntimeError("OpenVINO runtime unavailable")
+
+    openvino.Core = FailingCore
+    monkeypatch.setitem(sys.modules, "openvino", openvino)
+
+    status = select_current_runtime_status()
+
     assert status.active_device == RuntimeDevice.RULE_ONLY
     assert status.reason == "No OpenVINO device available for selected model"
