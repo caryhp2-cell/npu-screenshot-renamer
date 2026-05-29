@@ -6,7 +6,7 @@ from npu_screenshot_renamer.runtime.status import RuntimeDevice, RuntimeStatus
 
 
 def select_runtime_status(available_devices: Iterable[str]) -> RuntimeStatus:
-    normalized = {device.upper() for device in available_devices}
+    normalized = {device.upper().split(".", maxsplit=1)[0] for device in available_devices}
 
     if "NPU" in normalized:
         return RuntimeStatus(
