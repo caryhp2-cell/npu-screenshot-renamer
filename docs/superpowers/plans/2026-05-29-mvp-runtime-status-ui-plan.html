@@ -1,0 +1,879 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>NPU Screenshot Renamer MVP Runtime Status UI Implementation Plan</title>
+<style>
+:root {
+  color-scheme: light;
+  --bg: #f6f7f9;
+  --paper: #ffffff;
+  --text: #1d2433;
+  --muted: #667085;
+  --line: #d9dee7;
+  --accent: #2563eb;
+  --accent-soft: #eaf1ff;
+  --code-bg: #101828;
+  --code-text: #eef4ff;
+  --warn-bg: #fff8db;
+  --warn-line: #e4c767;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font: 16px/1.62 "Segoe UI", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+}
+.layout {
+  display: grid;
+  grid-template-columns: minmax(220px, 280px) minmax(0, 920px);
+  gap: 28px;
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 32px 24px 48px;
+}
+nav {
+  position: sticky;
+  top: 24px;
+  align-self: start;
+  max-height: calc(100vh - 48px);
+  overflow: auto;
+  padding: 18px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--paper);
+}
+nav h2 {
+  margin: 0 0 12px;
+  font-size: 13px;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+nav a {
+  display: block;
+  color: #344054;
+  text-decoration: none;
+  padding: 4px 0;
+  font-size: 14px;
+}
+nav a:hover { color: var(--accent); }
+.toc-level-1 { font-weight: 700; }
+.toc-level-2 { padding-left: 10px; }
+.toc-level-3 { padding-left: 22px; color: var(--muted); }
+main {
+  min-width: 0;
+  padding: 38px 48px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--paper);
+  box-shadow: 0 10px 30px rgba(16, 24, 40, .06);
+}
+h1 {
+  margin: 0 0 16px;
+  font-size: clamp(30px, 5vw, 46px);
+  line-height: 1.08;
+  color: #111827;
+}
+h2 {
+  margin-top: 42px;
+  padding-top: 18px;
+  border-top: 1px solid var(--line);
+  font-size: 25px;
+}
+h3 {
+  margin-top: 34px;
+  font-size: 20px;
+  color: #182230;
+}
+p { margin: 12px 0; }
+ul { padding-left: 24px; }
+li { margin: 7px 0; }
+blockquote {
+  margin: 18px 0;
+  padding: 14px 18px;
+  border-left: 4px solid var(--accent);
+  background: var(--accent-soft);
+  color: #1f3f77;
+}
+blockquote p { margin: 0; }
+hr {
+  border: 0;
+  border-top: 1px solid var(--line);
+  margin: 28px 0;
+}
+code {
+  border-radius: 4px;
+  padding: 2px 5px;
+  background: #eef2f7;
+  color: #182230;
+  font-family: Consolas, "Cascadia Mono", monospace;
+  font-size: .92em;
+}
+pre {
+  overflow: auto;
+  margin: 16px 0 24px;
+  padding: 18px;
+  border-radius: 8px;
+  background: var(--code-bg);
+}
+pre code {
+  padding: 0;
+  background: transparent;
+  color: var(--code-text);
+  font-size: 13.5px;
+  line-height: 1.55;
+}
+.tasks { list-style: none; padding-left: 0; }
+.tasks li {
+  padding: 8px 10px;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  background: #fcfcfd;
+}
+.tasks input { margin-right: 8px; }
+strong { color: #111827; }
+.badge-note {
+  display: inline-block;
+  margin: 0 0 18px;
+  padding: 6px 10px;
+  border: 1px solid var(--warn-line);
+  border-radius: 999px;
+  background: var(--warn-bg);
+  color: #7a5d00;
+  font-size: 13px;
+}
+@media (max-width: 900px) {
+  .layout { display: block; padding: 16px; }
+  nav { position: static; margin-bottom: 16px; max-height: none; }
+  main { padding: 26px 20px; }
+}
+@media print {
+  body { background: white; }
+  .layout { display: block; padding: 0; max-width: none; }
+  nav { display: none; }
+  main { border: 0; box-shadow: none; padding: 0; }
+  pre { white-space: pre-wrap; }
+}
+</style>
+</head>
+<body>
+<div class="layout">
+<nav aria-label="Table of contents">
+<h2>Contents</h2>
+<a class="toc-level-1" href="#npu-screenshot-renamer-mvp-runtime-status-ui-implementation-plan">NPU Screenshot Renamer MVP Runtime Status UI Implementation Plan</a>
+<a class="toc-level-2" href="#file-structure">File Structure</a>
+<a class="toc-level-2" href="#runtime-status-ux-requirement">Runtime Status UX Requirement</a>
+<a class="toc-level-3" href="#task-1-project-skeleton">Task 1: Project Skeleton</a>
+<a class="toc-level-3" href="#task-2-runtime-status-model">Task 2: Runtime Status Model</a>
+<a class="toc-level-3" href="#task-3-openvino-device-selector">Task 3: OpenVINO Device Selector</a>
+<a class="toc-level-3" href="#task-4-runtime-status-widget">Task 4: Runtime Status Widget</a>
+<a class="toc-level-3" href="#task-5-main-window-with-low-emphasis-fallback-indicator">Task 5: Main Window With Low-Emphasis Fallback Indicator</a>
+<a class="toc-level-3" href="#task-6-analyzer-boundary-records-runtime-used">Task 6: Analyzer Boundary Records Runtime Used</a>
+<a class="toc-level-3" href="#task-7-verification-and-documentation-update">Task 7: Verification And Documentation Update</a>
+<a class="toc-level-2" href="#self-review">Self-Review</a>
+</nav>
+<main>
+<div class="badge-note">Generated from docs/superpowers/plans/2026-05-29-mvp-runtime-status-ui-plan.md</div>
+<h1 id="npu-screenshot-renamer-mvp-runtime-status-ui-implementation-plan">NPU Screenshot Renamer MVP Runtime Status UI Implementation Plan</h1>
+<blockquote>
+<p><strong>For agentic workers:</strong> REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (<code>- [ ]</code>) syntax for tracking.</p>
+</blockquote>
+<p><strong>Goal:</strong> Build the first Python MVP skeleton for NPU Screenshot Renamer with explicit OpenVINO runtime selection and a subtle UI indicator when processing falls back from NPU to GPU or CPU.</p>
+<p><strong>Architecture:</strong> Use a small Python desktop prototype with PySide6 for the UI, OpenVINO runtime probing isolated behind a selector service, and a shared runtime status model consumed by both logs and UI. The UI must show the active inference device without interrupting the user: NPU appears as normal status, while GPU/CPU fallback appears as a low-emphasis warning badge or status row.</p>
+<p><strong>Tech Stack:</strong> Python 3.11+, PySide6, OpenVINO, pytest, watchdog, SQLite.</p>
+<hr>
+<h2 id="file-structure">File Structure</h2>
+<ul>
+<li><code>pyproject.toml</code>: Project metadata, dependencies, pytest configuration, console entry point.</li>
+<li><code>src/npu_screenshot_renamer/__init__.py</code>: Package marker and version.</li>
+<li><code>src/npu_screenshot_renamer/app.py</code>: Application bootstrap.</li>
+<li><code>src/npu_screenshot_renamer/runtime/status.py</code>: Runtime device enum and immutable status object.</li>
+<li><code>src/npu_screenshot_renamer/runtime/device_selector.py</code>: OpenVINO device discovery and NPU -&gt; GPU -&gt; CPU fallback selection.</li>
+<li><code>src/npu_screenshot_renamer/runtime/analyzer.py</code>: Thin analyzer boundary that records which runtime is used for an image analysis job.</li>
+<li><code>src/npu_screenshot_renamer/ui/main_window.py</code>: Main PySide6 window with settings/status placeholders and runtime status indicator.</li>
+<li><code>src/npu_screenshot_renamer/ui/runtime_status_widget.py</code>: Compact widget that displays NPU/GPU/CPU/fallback state.</li>
+<li><code>tests/runtime/test_device_selector.py</code>: Unit tests for fallback selection.</li>
+<li><code>tests/runtime/test_status.py</code>: Unit tests for status text and severity.</li>
+<li><code>tests/ui/test_runtime_status_widget.py</code>: Widget tests for subtle fallback display.</li>
+</ul>
+<h2 id="runtime-status-ux-requirement">Runtime Status UX Requirement</h2>
+<p>The UI must always make the selected runtime visible, but it should not dominate the app.</p>
+<p>Display rules:</p>
+<ul>
+<li>NPU active: show <code>NPU active</code> with neutral styling.</li>
+<li>GPU fallback: show <code>GPU fallback</code> with muted amber styling and tooltip/reason text such as <code>NPU unavailable; using GPU</code>.</li>
+<li>CPU fallback: show <code>CPU fallback</code> with muted amber styling and tooltip/reason text such as <code>NPU and GPU unavailable; using CPU</code>.</li>
+<li>Rule-only fallback: show <code>Rule-only fallback</code> with muted amber styling and tooltip/reason text such as <code>No OpenVINO device available for selected model</code>.</li>
+</ul>
+<p>This status should appear in the main status area and diagnostics view. It should not block processing and should not show modal dialogs.</p>
+<hr>
+<h3 id="task-1-project-skeleton">Task 1: Project Skeleton</h3>
+<p><strong>Files:</strong></p>
+<ul>
+<li>Create: <code>pyproject.toml</code></li>
+<li>Create: <code>src/npu_screenshot_renamer/__init__.py</code></li>
+<li>Create: <code>src/npu_screenshot_renamer/app.py</code></li>
+<li>Test: <code>tests/test_package_import.py</code></li>
+</ul>
+<ul class="tasks">
+<li><input type="checkbox" disabled> <strong>Step 1: Write the import smoke test</strong></li>
+</ul>
+<p>Create <code>tests/test_package_import.py</code>:</p>
+<pre><code class="language-python">def test_package_imports():
+    import npu_screenshot_renamer
+
+    assert npu_screenshot_renamer.__version__ == "0.1.0"</code></pre>
+<ul class="tasks">
+<li><input type="checkbox" disabled> <strong>Step 2: Run test to verify it fails</strong></li>
+</ul>
+<p>Run:</p>
+<pre><code class="language-powershell">pytest tests/test_package_import.py -v</code></pre>
+<p>Expected: FAIL with <code>ModuleNotFoundError: No module named 'npu_screenshot_renamer'</code>.</p>
+<ul class="tasks">
+<li><input type="checkbox" disabled> <strong>Step 3: Add project metadata and package files</strong></li>
+</ul>
+<p>Create <code>pyproject.toml</code>:</p>
+<pre><code class="language-toml">[build-system]
+requires = ["setuptools&gt;=69", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "npu-screenshot-renamer"
+version = "0.1.0"
+description = "Local Windows screenshot renamer with OpenVINO NPU-first analysis."
+requires-python = "&gt;=3.11"
+dependencies = [
+  "openvino&gt;=2025.0.0",
+  "PySide6&gt;=6.7.0",
+  "watchdog&gt;=4.0.0",
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest&gt;=8.0.0",
+  "pytest-qt&gt;=4.4.0",
+]
+
+[project.scripts]
+npu-screenshot-renamer = "npu_screenshot_renamer.app:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]</code></pre>
+<p>Create <code>src/npu_screenshot_renamer/__init__.py</code>:</p>
+<pre><code class="language-python">__version__ = "0.1.0"</code></pre>
+<p>Create <code>src/npu_screenshot_renamer/app.py</code>:</p>
+<pre><code class="language-python">from __future__ import annotations
+
+
+def main() -&gt; int:
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())</code></pre>
+<ul class="tasks">
+<li><input type="checkbox" disabled> <strong>Step 4: Run import test</strong></li>
+</ul>
+<p>Run:</p>
+<pre><code class="language-powershell">pytest tests/test_package_import.py -v</code></pre>
+<p>Expected: PASS.</p>
+<ul class="tasks">
+<li><input type="checkbox" disabled> <strong>Step 5: Commit</strong></li>
+</ul>
+<pre><code class="language-powershell">git add pyproject.toml src/npu_screenshot_renamer/__init__.py src/npu_screenshot_renamer/app.py tests/test_package_import.py
+git commit -m "chore: scaffold python mvp package"</code></pre>
+<hr>
+<h3 id="task-2-runtime-status-model">Task 2: Runtime Status Model</h3>
+<p><strong>Files:</strong></p>
+<ul>
+<li>Create: <code>src/npu_screenshot_renamer/runtime/__init__.py</code></li>
+<li>Create: <code>src/npu_screenshot_renamer/runtime/status.py</code></li>
+<li>Test: <code>tests/runtime/test_status.py</code></li>
+</ul>
+<ul class="tasks">
+<li><input type="checkbox" disabled> <strong>Step 1: Write status behavior tests</strong></li>
+</ul>
+<p>Create <code>tests/runtime/test_status.py</code>:</p>
+<pre><code class="language-python">from npu_screenshot_renamer.runtime.status import RuntimeDevice, RuntimeStatus
+
+
+def test_npu_status_is_neutral():
+    status = RuntimeStatus(
+        requested_device=RuntimeDevice.NPU,
+        active_device=RuntimeDevice.NPU,
+        reason="NPU device selected",
+    )
+
+    assert status.is_fallback is False
+    assert status.label == "NPU active"
+    assert status.severity == "neutral"
+
+
+def test_gpu_fallback_status_is_muted_warning():
+    status = RuntimeStatus(
+        requested_device=RuntimeDevice.NPU,
+        active_device=RuntimeDevice.GPU,
+        reason="NPU unavailable; using GPU",
+    )
+
+    assert status.is_fallback is True
+    assert status.label == "GPU fallback"
+    assert status.severity == "muted-warning"
+
+
+def test_cpu_fallback_status_explains_reason():
+    status = RuntimeStatus(
+        requested_device=RuntimeDevice.NPU,
+        active_device=RuntimeDevice.CPU,
+        reason="NPU and GPU unavailable; using CPU",
+    )
+
+    assert status.is_fallback is True
+    assert status.label == "CPU fallback"
+    assert status.tooltip == "NPU and GPU unavailable; using CPU"
+
+
+def test_rule_only_fallback_status():
+    status = RuntimeStatus(
+        requested_device=RuntimeDevice.NPU,
+        active_device=RuntimeDevice.RULE_ONLY,
+        reason="No OpenVINO device available for selected model",
+    )
+
+    assert status.is_fallback is True
+    assert status.label == "Rule-only fallback"
+    assert status.severity == "muted-warning"</code></pre>
+<ul class="tasks">
+<li><input type="checkbox" disabled> <strong>Step 2: Run test to verify it fails</strong></li>
+</ul>
+<p>Run:</p>
+<pre><code class="language-powershell">pytest tests/runtime/test_status.py -v</code></pre>
+<p>Expected: FAIL with <code>ModuleNotFoundError</code> for <code>npu_screenshot_renamer.runtime</code>.</p>
+<ul class="tasks">
+<li><input type="checkbox" disabled> <strong>Step 3: Implement status model</strong></li>
+</ul>
+<p>Create <code>src/npu_screenshot_renamer/runtime/__init__.py</code>:</p>
+<pre><code class="language-python">from npu_screenshot_renamer.runtime.status import RuntimeDevice, RuntimeStatus
+
+__all__ = ["RuntimeDevice", "RuntimeStatus"]</code></pre>
+<p>Create <code>src/npu_screenshot_renamer/runtime/status.py</code>:</p>
+<pre><code class="language-python">from __future__ import annotations
+
+from dataclasses import dataclass
+from enum import StrEnum
+
+
+class RuntimeDevice(StrEnum):
+    NPU = "NPU"
+    GPU = "GPU"
+    CPU = "CPU"
+    RULE_ONLY = "RULE_ONLY"
+
+
+@dataclass(frozen=True, slots=True)
+class RuntimeStatus:
+    requested_device: RuntimeDevice
+    active_device: RuntimeDevice
+    reason: str
+
+    @property
+    def is_fallback(self) -&gt; bool:
+        return self.active_device != self.requested_device
+
+    @property
+    def label(self) -&gt; str:
+        if self.active_device == RuntimeDevice.NPU and not self.is_fallback:
+            return "NPU active"
+        if self.active_device == RuntimeDevice.RULE_ONLY:
+            return "Rule-only fallback"
+        return f"{self.active_device.value} fallback"
+
+    @property
+    def severity(self) -&gt; str:
+        return "muted-warning" if self.is_fallback else "neutral"
+
+    @property
+    def tooltip(self) -&gt; str:
+        return self.reason</code></pre>
+<ul class="tasks">
+<li><input type="checkbox" disabled> <strong>Step 4: Run status tests</strong></li>
+</ul>
+<p>Run:</p>
+<pre><code class="language-powershell">pytest tests/runtime/test_status.py -v</code></pre>
+<p>Expected: PASS.</p>
+<ul class="tasks">
+<li><input type="checkbox" disabled> <strong>Step 5: Commit</strong></li>
+</ul>
+<pre><code class="language-powershell">git add src/npu_screenshot_renamer/runtime tests/runtime/test_status.py
+git commit -m "feat: add runtime status model"</code></pre>
+<hr>
+<h3 id="task-3-openvino-device-selector">Task 3: OpenVINO Device Selector</h3>
+<p><strong>Files:</strong></p>
+<ul>
+<li>Create: <code>src/npu_screenshot_renamer/runtime/device_selector.py</code></li>
+<li>Test: <code>tests/runtime/test_device_selector.py</code></li>
+</ul>
+<ul class="tasks">
+<li><input type="checkbox" disabled> <strong>Step 1: Write fallback selection tests</strong></li>
+</ul>
+<p>Create <code>tests/runtime/test_device_selector.py</code>:</p>
+<pre><code class="language-python">from npu_screenshot_renamer.runtime.device_selector import select_runtime_status
+from npu_screenshot_renamer.runtime.status import RuntimeDevice
+
+
+def test_selects_npu_when_available():
+    status = select_runtime_status(["CPU", "GPU", "NPU"])
+
+    assert status.active_device == RuntimeDevice.NPU
+    assert status.reason == "NPU device selected"
+
+
+def test_falls_back_to_gpu_when_npu_missing():
+    status = select_runtime_status(["CPU", "GPU"])
+
+    assert status.active_device == RuntimeDevice.GPU
+    assert status.reason == "NPU unavailable; using GPU"
+
+
+def test_falls_back_to_cpu_when_only_cpu_available():
+    status = select_runtime_status(["CPU"])
+
+    assert status.active_device == RuntimeDevice.CPU
+    assert status.reason == "NPU and GPU unavailable; using CPU"
+
+
+def test_falls_back_to_rule_only_when_no_supported_device_available():
+    status = select_runtime_status([])
+
+    assert status.active_device == RuntimeDevice.RULE_ONLY
+    assert status.reason == "No OpenVINO device available for selected model"</code></pre>
+<ul class="tasks">
+<li><input type="checkbox" disabled> <strong>Step 2: Run selector tests to verify they fail</strong></li>
+</ul>
+<p>Run:</p>
+<pre><code class="language-powershell">pytest tests/runtime/test_device_selector.py -v</code></pre>
+<p>Expected: FAIL with <code>ModuleNotFoundError</code> for <code>device_selector</code>.</p>
+<ul class="tasks">
+<li><input type="checkbox" disabled> <strong>Step 3: Implement deterministic selector</strong></li>
+</ul>
+<p>Create <code>src/npu_screenshot_renamer/runtime/device_selector.py</code>:</p>
+<pre><code class="language-python">from __future__ import annotations
+
+from collections.abc import Iterable
+
+from npu_screenshot_renamer.runtime.status import RuntimeDevice, RuntimeStatus
+
+
+def select_runtime_status(available_devices: Iterable[str]) -&gt; RuntimeStatus:
+    normalized = {device.upper() for device in available_devices}
+
+    if "NPU" in normalized:
+        return RuntimeStatus(
+            requested_device=RuntimeDevice.NPU,
+            active_device=RuntimeDevice.NPU,
+            reason="NPU device selected",
+        )
+
+    if "GPU" in normalized:
+        return RuntimeStatus(
+            requested_device=RuntimeDevice.NPU,
+            active_device=RuntimeDevice.GPU,
+            reason="NPU unavailable; using GPU",
+        )
+
+    if "CPU" in normalized:
+        return RuntimeStatus(
+            requested_device=RuntimeDevice.NPU,
+            active_device=RuntimeDevice.CPU,
+            reason="NPU and GPU unavailable; using CPU",
+        )
+
+    return RuntimeStatus(
+        requested_device=RuntimeDevice.NPU,
+        active_device=RuntimeDevice.RULE_ONLY,
+        reason="No OpenVINO device available for selected model",
+    )</code></pre>
+<ul class="tasks">
+<li><input type="checkbox" disabled> <strong>Step 4: Add OpenVINO probing function</strong></li>
+</ul>
+<p>Append to <code>src/npu_screenshot_renamer/runtime/device_selector.py</code>:</p>
+<pre><code class="language-python">def discover_openvino_devices() -&gt; list[str]:
+    try:
+        from openvino import Core
+    except ImportError:
+        return []
+
+    core = Core()
+    return list(core.available_devices)
+
+
+def select_current_runtime_status() -&gt; RuntimeStatus:
+    return select_runtime_status(discover_openvino_devices())</code></pre>
+<ul class="tasks">
+<li><input type="checkbox" disabled> <strong>Step 5: Run selector tests</strong></li>
+</ul>
+<p>Run:</p>
+<pre><code class="language-powershell">pytest tests/runtime/test_device_selector.py -v</code></pre>
+<p>Expected: PASS.</p>
+<ul class="tasks">
+<li><input type="checkbox" disabled> <strong>Step 6: Commit</strong></li>
+</ul>
+<pre><code class="language-powershell">git add src/npu_screenshot_renamer/runtime/device_selector.py tests/runtime/test_device_selector.py
+git commit -m "feat: add openvino runtime fallback selector"</code></pre>
+<hr>
+<h3 id="task-4-runtime-status-widget">Task 4: Runtime Status Widget</h3>
+<p><strong>Files:</strong></p>
+<ul>
+<li>Create: <code>src/npu_screenshot_renamer/ui/__init__.py</code></li>
+<li>Create: <code>src/npu_screenshot_renamer/ui/runtime_status_widget.py</code></li>
+<li>Test: <code>tests/ui/test_runtime_status_widget.py</code></li>
+</ul>
+<ul class="tasks">
+<li><input type="checkbox" disabled> <strong>Step 1: Write widget tests</strong></li>
+</ul>
+<p>Create <code>tests/ui/test_runtime_status_widget.py</code>:</p>
+<pre><code class="language-python">from npu_screenshot_renamer.runtime.status import RuntimeDevice, RuntimeStatus
+from npu_screenshot_renamer.ui.runtime_status_widget import RuntimeStatusWidget
+
+
+def test_widget_shows_neutral_npu_status(qtbot):
+    widget = RuntimeStatusWidget()
+    qtbot.addWidget(widget)
+
+    widget.set_status(
+        RuntimeStatus(
+            requested_device=RuntimeDevice.NPU,
+            active_device=RuntimeDevice.NPU,
+            reason="NPU device selected",
+        )
+    )
+
+    assert widget.text() == "NPU active"
+    assert widget.property("severity") == "neutral"
+
+
+def test_widget_shows_subtle_gpu_fallback_status(qtbot):
+    widget = RuntimeStatusWidget()
+    qtbot.addWidget(widget)
+
+    widget.set_status(
+        RuntimeStatus(
+            requested_device=RuntimeDevice.NPU,
+            active_device=RuntimeDevice.GPU,
+            reason="NPU unavailable; using GPU",
+        )
+    )
+
+    assert widget.text() == "GPU fallback"
+    assert widget.toolTip() == "NPU unavailable; using GPU"
+    assert widget.property("severity") == "muted-warning"</code></pre>
+<ul class="tasks">
+<li><input type="checkbox" disabled> <strong>Step 2: Run widget tests to verify they fail</strong></li>
+</ul>
+<p>Run:</p>
+<pre><code class="language-powershell">pytest tests/ui/test_runtime_status_widget.py -v</code></pre>
+<p>Expected: FAIL with <code>ModuleNotFoundError</code> for <code>npu_screenshot_renamer.ui</code>.</p>
+<ul class="tasks">
+<li><input type="checkbox" disabled> <strong>Step 3: Implement compact runtime status widget</strong></li>
+</ul>
+<p>Create <code>src/npu_screenshot_renamer/ui/__init__.py</code>:</p>
+<pre><code class="language-python">from npu_screenshot_renamer.ui.runtime_status_widget import RuntimeStatusWidget
+
+__all__ = ["RuntimeStatusWidget"]</code></pre>
+<p>Create <code>src/npu_screenshot_renamer/ui/runtime_status_widget.py</code>:</p>
+<pre><code class="language-python">from __future__ import annotations
+
+from PySide6.QtCore import Qt
+from PySide6.QtWidgets import QLabel
+
+from npu_screenshot_renamer.runtime.status import RuntimeDevice, RuntimeStatus
+
+
+class RuntimeStatusWidget(QLabel):
+    def __init__(self) -&gt; None:
+        super().__init__()
+        self.setObjectName("runtimeStatus")
+        self.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        self.setMinimumWidth(108)
+        self.set_status(
+            RuntimeStatus(
+                requested_device=RuntimeDevice.NPU,
+                active_device=RuntimeDevice.RULE_ONLY,
+                reason="Runtime not checked yet",
+            )
+        )
+
+    def set_status(self, status: RuntimeStatus) -&gt; None:
+        self.setText(status.label)
+        self.setToolTip(status.tooltip)
+        self.setProperty("severity", status.severity)
+        self.style().unpolish(self)
+        self.style().polish(self)</code></pre>
+<ul class="tasks">
+<li><input type="checkbox" disabled> <strong>Step 4: Run widget tests</strong></li>
+</ul>
+<p>Run:</p>
+<pre><code class="language-powershell">pytest tests/ui/test_runtime_status_widget.py -v</code></pre>
+<p>Expected: PASS.</p>
+<ul class="tasks">
+<li><input type="checkbox" disabled> <strong>Step 5: Commit</strong></li>
+</ul>
+<pre><code class="language-powershell">git add src/npu_screenshot_renamer/ui tests/ui/test_runtime_status_widget.py
+git commit -m "feat: add subtle runtime status widget"</code></pre>
+<hr>
+<h3 id="task-5-main-window-with-low-emphasis-fallback-indicator">Task 5: Main Window With Low-Emphasis Fallback Indicator</h3>
+<p><strong>Files:</strong></p>
+<ul>
+<li>Create: <code>src/npu_screenshot_renamer/ui/main_window.py</code></li>
+<li>Modify: <code>src/npu_screenshot_renamer/app.py</code></li>
+</ul>
+<ul class="tasks">
+<li><input type="checkbox" disabled> <strong>Step 1: Implement main window layout</strong></li>
+</ul>
+<p>Create <code>src/npu_screenshot_renamer/ui/main_window.py</code>:</p>
+<pre><code class="language-python">from __future__ import annotations
+
+from PySide6.QtWidgets import (
+    QCheckBox,
+    QHBoxLayout,
+    QLabel,
+    QLineEdit,
+    QMainWindow,
+    QPushButton,
+    QVBoxLayout,
+    QWidget,
+)
+
+from npu_screenshot_renamer.runtime.device_selector import select_current_runtime_status
+from npu_screenshot_renamer.ui.runtime_status_widget import RuntimeStatusWidget
+
+
+class MainWindow(QMainWindow):
+    def __init__(self) -&gt; None:
+        super().__init__()
+        self.setWindowTitle("NPU Screenshot Renamer")
+        self.resize(760, 420)
+
+        self.runtime_status = RuntimeStatusWidget()
+        self.runtime_status.set_status(select_current_runtime_status())
+
+        folder_input = QLineEdit()
+        folder_input.setPlaceholderText("Screenshot folder")
+
+        browse_button = QPushButton("Browse")
+        batch_checkbox = QCheckBox("Process existing files")
+        watch_checkbox = QCheckBox("Watch new screenshots")
+
+        folder_row = QHBoxLayout()
+        folder_row.addWidget(folder_input, 1)
+        folder_row.addWidget(browse_button)
+
+        status_row = QHBoxLayout()
+        status_row.addWidget(QLabel("Runtime"))
+        status_row.addWidget(self.runtime_status)
+        status_row.addStretch(1)
+
+        layout = QVBoxLayout()
+        layout.addLayout(folder_row)
+        layout.addWidget(batch_checkbox)
+        layout.addWidget(watch_checkbox)
+        layout.addStretch(1)
+        layout.addLayout(status_row)
+
+        root = QWidget()
+        root.setLayout(layout)
+        root.setStyleSheet(
+            """
+            QLabel#runtimeStatus {
+                border: 1px solid #d0d5dd;
+                border-radius: 6px;
+                padding: 3px 8px;
+                color: #344054;
+                background: #f9fafb;
+            }
+            QLabel#runtimeStatus[severity="muted-warning"] {
+                border-color: #e4c767;
+                color: #7a5d00;
+                background: #fff8db;
+            }
+            """
+        )
+
+        self.setCentralWidget(root)</code></pre>
+<ul class="tasks">
+<li><input type="checkbox" disabled> <strong>Step 2: Wire application bootstrap</strong></li>
+</ul>
+<p>Replace <code>src/npu_screenshot_renamer/app.py</code> with:</p>
+<pre><code class="language-python">from __future__ import annotations
+
+import sys
+
+from PySide6.QtWidgets import QApplication
+
+from npu_screenshot_renamer.ui.main_window import MainWindow
+
+
+def main() -&gt; int:
+    app = QApplication(sys.argv)
+    window = MainWindow()
+    window.show()
+    return app.exec()
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())</code></pre>
+<ul class="tasks">
+<li><input type="checkbox" disabled> <strong>Step 3: Manually verify fallback display</strong></li>
+</ul>
+<p>Run:</p>
+<pre><code class="language-powershell">python -m npu_screenshot_renamer.app</code></pre>
+<p>Expected:</p>
+<ul>
+<li>App opens.</li>
+<li>Bottom status row shows <code>Runtime</code>.</li>
+<li>If OpenVINO reports NPU, badge says <code>NPU active</code>.</li>
+<li>If NPU is unavailable and GPU is available, badge says <code>GPU fallback</code>.</li>
+<li>If only CPU is available, badge says <code>CPU fallback</code>.</li>
+<li>The fallback badge is visible but low-emphasis: no dialog, no blocking, no large warning banner.</li>
+</ul>
+<ul class="tasks">
+<li><input type="checkbox" disabled> <strong>Step 4: Commit</strong></li>
+</ul>
+<pre><code class="language-powershell">git add src/npu_screenshot_renamer/app.py src/npu_screenshot_renamer/ui/main_window.py
+git commit -m "feat: show runtime fallback status in ui"</code></pre>
+<hr>
+<h3 id="task-6-analyzer-boundary-records-runtime-used">Task 6: Analyzer Boundary Records Runtime Used</h3>
+<p><strong>Files:</strong></p>
+<ul>
+<li>Create: <code>src/npu_screenshot_renamer/runtime/analyzer.py</code></li>
+<li>Test: <code>tests/runtime/test_analyzer.py</code></li>
+</ul>
+<ul class="tasks">
+<li><input type="checkbox" disabled> <strong>Step 1: Write analyzer status test</strong></li>
+</ul>
+<p>Create <code>tests/runtime/test_analyzer.py</code>:</p>
+<pre><code class="language-python">from pathlib import Path
+
+from npu_screenshot_renamer.runtime.analyzer import AnalysisResult, analyze_image_with_status
+from npu_screenshot_renamer.runtime.status import RuntimeDevice, RuntimeStatus
+
+
+def test_analysis_result_records_runtime_status():
+    status = RuntimeStatus(
+        requested_device=RuntimeDevice.NPU,
+        active_device=RuntimeDevice.CPU,
+        reason="NPU and GPU unavailable; using CPU",
+    )
+
+    result = analyze_image_with_status(Path("sample.png"), status)
+
+    assert isinstance(result, AnalysisResult)
+    assert result.runtime_status.active_device == RuntimeDevice.CPU
+    assert result.summary == "Rule-based placeholder analysis for sample.png"
+    assert result.confidence == 0.0</code></pre>
+<ul class="tasks">
+<li><input type="checkbox" disabled> <strong>Step 2: Run test to verify it fails</strong></li>
+</ul>
+<p>Run:</p>
+<pre><code class="language-powershell">pytest tests/runtime/test_analyzer.py -v</code></pre>
+<p>Expected: FAIL with <code>ModuleNotFoundError</code> for <code>analyzer</code>.</p>
+<ul class="tasks">
+<li><input type="checkbox" disabled> <strong>Step 3: Implement analyzer boundary</strong></li>
+</ul>
+<p>Create <code>src/npu_screenshot_renamer/runtime/analyzer.py</code>:</p>
+<pre><code class="language-python">from __future__ import annotations
+
+from dataclasses import dataclass
+from pathlib import Path
+
+from npu_screenshot_renamer.runtime.status import RuntimeStatus
+
+
+@dataclass(frozen=True, slots=True)
+class AnalysisResult:
+    image_path: Path
+    summary: str
+    confidence: float
+    runtime_status: RuntimeStatus
+
+
+def analyze_image_with_status(image_path: Path, runtime_status: RuntimeStatus) -&gt; AnalysisResult:
+    return AnalysisResult(
+        image_path=image_path,
+        summary=f"Rule-based placeholder analysis for {image_path.name}",
+        confidence=0.0,
+        runtime_status=runtime_status,
+    )</code></pre>
+<ul class="tasks">
+<li><input type="checkbox" disabled> <strong>Step 4: Run analyzer test</strong></li>
+</ul>
+<p>Run:</p>
+<pre><code class="language-powershell">pytest tests/runtime/test_analyzer.py -v</code></pre>
+<p>Expected: PASS.</p>
+<ul class="tasks">
+<li><input type="checkbox" disabled> <strong>Step 5: Commit</strong></li>
+</ul>
+<pre><code class="language-powershell">git add src/npu_screenshot_renamer/runtime/analyzer.py tests/runtime/test_analyzer.py
+git commit -m "feat: record runtime used during analysis"</code></pre>
+<hr>
+<h3 id="task-7-verification-and-documentation-update">Task 7: Verification And Documentation Update</h3>
+<p><strong>Files:</strong></p>
+<ul>
+<li>Modify: <code>docs/superpowers/specs/2026-05-29-npu-screenshot-renamer-design.md</code></li>
+</ul>
+<ul class="tasks">
+<li><input type="checkbox" disabled> <strong>Step 1: Run focused tests</strong></li>
+</ul>
+<p>Run:</p>
+<pre><code class="language-powershell">pytest tests/runtime tests/ui tests/test_package_import.py -v</code></pre>
+<p>Expected: PASS.</p>
+<ul class="tasks">
+<li><input type="checkbox" disabled> <strong>Step 2: Update design spec UI requirement</strong></li>
+</ul>
+<p>In <code>docs/superpowers/specs/2026-05-29-npu-screenshot-renamer-design.md</code>, add this bullet under <code>## 9. User Interface</code> after the required screens list:</p>
+<pre><code class="language-markdown">Runtime status should be visible but low-emphasis. When NPU is active, the UI may show a neutral `NPU active` indicator. When inference falls back to GPU, CPU, or rule-only naming, the UI should show a subtle status badge or diagnostics row such as `GPU fallback` or `CPU fallback`, including a short reason in tooltip or diagnostics text. This indicator must not block automatic renaming.</code></pre>
+<ul class="tasks">
+<li><input type="checkbox" disabled> <strong>Step 3: Manually verify app startup</strong></li>
+</ul>
+<p>Run:</p>
+<pre><code class="language-powershell">python -m npu_screenshot_renamer.app</code></pre>
+<p>Expected:</p>
+<ul>
+<li>Window opens.</li>
+<li>Runtime status badge is visible.</li>
+<li>Fallback state is understandable without being visually loud.</li>
+</ul>
+<ul class="tasks">
+<li><input type="checkbox" disabled> <strong>Step 4: Commit</strong></li>
+</ul>
+<pre><code class="language-powershell">git add docs/superpowers/specs/2026-05-29-npu-screenshot-renamer-design.md
+git commit -m "docs: specify subtle runtime fallback indicator"</code></pre>
+<hr>
+<h2 id="self-review">Self-Review</h2>
+<p>Spec coverage:</p>
+<ul>
+<li>NPU-first fallback path is covered by Task 3.</li>
+<li>UI visibility for GPU/CPU fallback is covered by Tasks 4, 5, and 7.</li>
+<li>Runtime used is preserved for future history/logging by Task 6.</li>
+<li>Batch rename, folder watching, collision-safe rename, SQLite history, undo, OCR, and final OpenVINO model integration remain outside this first plan and should become separate plans after the runtime/UI spine is in place.</li>
+</ul>
+<p>Placeholder scan:</p>
+<ul>
+<li>No <code>TBD</code>, <code>TODO</code>, or vague edge-case steps are used.</li>
+<li>Each code-writing step includes concrete file contents or exact text to add.</li>
+</ul>
+<p>Type consistency:</p>
+<ul>
+<li><code>RuntimeDevice</code>, <code>RuntimeStatus</code>, <code>RuntimeStatusWidget</code>, <code>select_runtime_status</code>, and <code>AnalysisResult</code> are defined before later tasks use them.</li>
+</ul>
+</main>
+</div>
+</body>
+</html>
